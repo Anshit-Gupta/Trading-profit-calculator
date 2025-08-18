@@ -110,7 +110,7 @@ p.lead{
   gap:8px;
 }
 
-input[type="number"], input[type="text"]{
+input[type="number"], input[type="text"], select.unit{
   width:100%;
   padding:10px 12px;
   border-radius:10px;
@@ -121,7 +121,7 @@ input[type="number"], input[type="text"]{
   box-sizing:border-box;
   color: var(--text-light);
 }
-input[type="number"]:focus{
+input[type="number"]:focus, select.unit:focus{
   box-shadow: 0 0 0 4px rgba(11,121,247,0.06);
   border-color: rgba(11,121,247,0.25);
 }
@@ -205,15 +205,29 @@ footer.small{
   font-size:13px;
 }
 
-.theme-toggle {
+/* top controls */
+.top-controls {
   position: absolute;
-  top: 14px;
+  top: 2px;
   right: 14px;
-  display:flex;
-  gap:8px;
-  align-items:center;
-  user-select:none;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: flex-end;
 }
+
+.theme-toggle, .lang-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+}
+
+.theme-toggle .icon,
+.lang-toggle .icon {
+  font-size: 16px;
+}
+
 .switch {
   width:46px;
   height:26px;
@@ -237,6 +251,30 @@ footer.small{
 .switch[data-checked="true"]{ background: linear-gradient(180deg,var(--accent),var(--accent-2)); border-color: rgba(11,121,247,0.24); }
 .switch[data-checked="true"] .knob{ transform: translateX(20px); background: white; }
 
+/* optional checkbox styling */
+.optional-wrap {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-right:6px;
+  user-select:none;
+  font-size:13px;
+  color:var(--muted);
+}
+.optional-wrap input[type="checkbox"]{
+  width:16px;
+  height:16px;
+  cursor:pointer;
+}
+.optional-label { font-size:13px; color:var(--muted); }
+
+/* ensure selects look like other inputs */
+select.unit {
+  min-width:88px;
+  max-width:140px;
+}
+
+/* layout helpers */
 .flex-row {
   display:flex;
   gap:8px;
@@ -248,4 +286,5 @@ footer.small{
 @media (max-width:720px){
   .label{ min-width: 120px; font-size:12px; }
   .card{ padding:18px; gap:12px; }
+  .optional-wrap .optional-label { display:none; } /* save space on small screens */
 }
