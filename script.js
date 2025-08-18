@@ -1,290 +1,375 @@
-/* -----------------------
-   LIGHT THEME
------------------------ */
-:root{
-  --bg: #f6f8fa;
-  --card: #ffffff;
-  --muted: #6b7280;
-  --accent: #0b79f7;
-  --accent-2: #0369a1;
-  --danger: #dc2626;
-  --success: #16a34a;
-  --glass: rgba(255,255,255,0.6);
-  --radius: 12px;
-  --text-light: #0f172a;
-  --input-border: #e6edf3;
-  --input-bg: linear-gradient(180deg,#fff,#fbfdff);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+// Helper: safe parse float
+function toNum(v){
+  if (v === null || v === undefined) return 0;
+  v = v.toString().trim();
+  if (v === '') return NaN;
+  const n = parseFloat(v.replace(/,/g,''));
+  return isNaN(n) ? 0 : n;
 }
+
+const fmt = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  maximumFractionDigits: 2,
+});
+
+// DOM refs — inputs
+const fields = {
+  purchasePrice: document.getElementById('purchasePrice'),
+  quantity: document.getElementById('quantity'),
+  mandiTax: document.getElementById('mandiTax'),
+  mandiTaxUnit: document.getElementById('mandiTaxUnit'),
+  agentArhat: document.getElementById('agentArhat'),
+  agentArhatUnit: document.getElementById('agentArhatUnit'),
+  loading: document.getElementById('loading'),
+  transportation: document.getElementById('transportation'),
+  coldStorage: document.getElementById('coldStorage'),
+  mandiAgentCommission: document.getElementById('mandiAgentCommission'),
+  mandiAgentCommissionUnit: document.getElementById('mandiAgentCommissionUnit'),
+  margin: document.getElementById('margin'),
+};
+
+// optional toggle DOM ref
+const mandiAgentToggle = document.getElementById('mandiAgentToggle');
+
+// DOM refs — outputs
+const out = {
+  totalExpenses: document.getElementById('totalExpenses'),
+  purchaseTotal: document.getElementById('purchaseTotal'),
+  netAfter: document.getElementById('netAfter'),
+  bdMandiTax: document.getElementById('bdMandiTax'),
+  bdAgent: document.getElementById('bdAgent'),
+  bdLoading: document.getElementById('bdLoading'),
+  bdTransport: document.getElementById('bdTransport'),
+  bdCold: document.getElementById('bdCold'),
+  bdMandiAgent: document.getElementById('bdMandiAgent'),
+  sellingTotal: document.getElementById('sellingTotal'),
+  profit: document.getElementById('profit'),
+  profitBlock: document.getElementById('profitBlock'),
+  resultMsg: document.getElementById('resultMsg'),
+  liBdMandiAgent: document.getElementById('liBdMandiAgent'),
+};
+
+// calculation + render
+function computeAndRender(){
+  const price = toNum(fields.purchasePrice.value);
+  const qty = toNum(fields.quantity.value);
+  const purchaseTotal = price * qty;
+
+  function computeField(valueRaw, unit){
+    const val = toNum(valueRaw);
+    if (unit === 'PCT') return val * 0.01 * purchaseTotal;
+    else return val;
+  }
+
+  const mandiTaxAmt = computeField(fields.mandiTax.value, fields.mandiTaxUnit.value);
+  const agentArhatAmt = computeField(fields.agentArhat.value, fields.agentArhatUnit.value);
+  const loadingAmt = computeField(fields.loading.value, 'INR');
+  const transportAmt = computeField(fields.transportation.value, 'INR');
+  const coldAmt = computeField(fields.coldStorage.value, 'INR');
+
+  // Mandi Agent Commission respects toggle
+  let mandiAgentCommAmt = 0;
+  if(mandiAgentToggle && mandiAgentToggle.checked){
+    mandiAgentCommAmt = computeField(fields.mandiAgentCommission.value, fields.mandiAgentCommissionUnit.value);
+  } else {
+    mandiAgentCommAmt = 0;
+  }
+
+  const expenses = mandiTaxAmt + agentArhatAmt + loadingAmt + transportAmt + coldAmt + mandiAgentCommAmt;
+
+  out.purchaseTotal.textContent = fmt.format(purchaseTotal);
+  out.totalExpenses.textContent = fmt.format(expenses);
+
+  out.bdMandiTax.textContent = fmt.format(mandiTaxAmt) + (fields.mandiTaxUnit.value==='PCT'?` (${fields.mandiTax.value||0}%)`:``);
+  out.bdAgent.textContent = fmt.format(agentArhatAmt) + (fields.agentArhatUnit.value==='PCT'?` (${fields.agentArhat.value||0}%)`:``);
+  out.bdLoading.textContent = fmt.format(loadingAmt);
+  out.bdTransport.textContent = fmt.format(transportAmt);
+  out.bdCold.textContent = fmt.format(coldAmt);
+
+  if(mandiAgentToggle && mandiAgentToggle.checked){
+    out.bdMandiAgent.textContent = fmt.format(mandiAgentCommAmt) + (fields.mandiAgentCommissionUnit.value==='PCT'?` (${fields.mandiAgentCommission.value||0}%)`:``);
+    if(out.liBdMandiAgent) out.liBdMandiAgent.style.display = '';
+  } else {
+    // hide from breakdown when not included
+    if(out.bdMandiAgent) out.bdMandiAgent.textContent = '—';
+    if(out.liBdMandiAgent) out.liBdMandiAgent.style.display = 'none';
+  }
+
+  const netAfter = purchaseTotal + expenses;
+  out.netAfter.textContent = fmt.format(netAfter);
+  out.netAfter.className = 'big ' + (netAfter < 0 ? 'negative':'positive');
+
+  // Margin / Selling Price
+  const marginRaw = fields.margin.value ?? '';
+  const marginEmpty = (marginRaw.toString().trim() === '');
+  if(marginEmpty){
+    out.profitBlock.style.display='none';
+    out.resultMsg.innerHTML='Calculated net after expenses. Add Margin (%) to compute Selling Price & Profit.';
+  } else {
+    const marginPct = toNum(marginRaw);
+    const sellingPerUnit = price + (price * marginPct/100);
+    const sellingTotal = sellingPerUnit * qty;
+    const profit = sellingTotal - purchaseTotal - expenses;
+
+    out.sellingTotal.textContent = fmt.format(sellingPerUnit);
+    out.profit.textContent = fmt.format(profit);
+    out.profit.className = 'big ' + (profit<0?'negative':'positive');
+    out.profitBlock.style.display='block';
+    out.resultMsg.innerHTML='Calculated net after expenses and net profit with Margin %.';
+  }
+}
+
+// events
+document.getElementById('calcBtn').addEventListener('click', computeAndRender);
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  fields.purchasePrice.value="0";
+  fields.quantity.value="1";
+  fields.mandiTax.value="0";
+  fields.mandiTaxUnit.value="INR";
+  fields.agentArhat.value="0";
+  fields.agentArhatUnit.value="INR";
+  fields.loading.value="0";
+  fields.transportation.value="0";
+  fields.coldStorage.value="0";
+  fields.mandiAgentCommission.value="0";
+  fields.mandiAgentCommissionUnit.value="INR";
+  fields.margin.value="";
+  // reset toggle to checked (keeps previous default behaviour)
+  if(mandiAgentToggle) mandiAgentToggle.checked = true;
+  // ensure mandi commission visible
+  if(out.liBdMandiAgent) out.liBdMandiAgent.style.display = '';
+  computeAndRender();
+});
+
+const inputs = Object.values(fields);
+inputs.forEach(el=>el.addEventListener('input',computeAndRender));
+inputs.forEach(el=>el.addEventListener('change',computeAndRender));
+
+// Mandi Agent toggle behaviour
+if(mandiAgentToggle){
+  mandiAgentToggle.addEventListener('change', ()=>{
+    if(mandiAgentToggle.checked){
+      // re-enable input
+      fields.mandiAgentCommission.disabled = false;
+      fields.mandiAgentCommissionUnit.disabled = false;
+      // show input elements (we keep layout but enable)
+      fields.mandiAgentCommission.style.display = '';
+      fields.mandiAgentCommissionUnit.style.display = '';
+      if(out.liBdMandiAgent) out.liBdMandiAgent.style.display = '';
+    } else {
+      // disable and clear value (but keep previous value saved in data attribute)
+      // store previous value to restore later
+      fields.mandiAgentCommission.dataset._prev = fields.mandiAgentCommission.value;
+      fields.mandiAgentCommission.dataset._prevUnit = fields.mandiAgentCommissionUnit.value;
+      fields.mandiAgentCommission.value = "0";
+      fields.mandiAgentCommissionUnit.value = "INR";
+      fields.mandiAgentCommission.disabled = true;
+      fields.mandiAgentCommissionUnit.disabled = true;
+      // hide in breakdown
+      if(out.liBdMandiAgent) out.liBdMandiAgent.style.display = 'none';
+    }
+    computeAndRender();
+  });
+  // allow toggle via keyboard/space handled by default for checkbox
+}
+
+// populate initial state and compute
+// (if toggle unchecked in HTML, ensure fields are disabled)
+if(mandiAgentToggle && !mandiAgentToggle.checked){
+  fields.mandiAgentCommission.disabled = true;
+  fields.mandiAgentCommissionUnit.disabled = true;
+  if(out.liBdMandiAgent) out.liBdMandiAgent.style.display = 'none';
+}
+
+computeAndRender();
 
 /* -----------------------
-   DARK THEME
+   Theme toggle
 ----------------------- */
-:root[data-theme="dark"]{
-  --bg: #000000;
-  --card: #0b0b0b;
-  --muted: #9aa6b2;
-  --accent: #4f46e5;
-  --accent-2: #3730a3;
-  --danger: #ff6b6b;
-  --success: #6ad58a;
-  --glass: rgba(255,255,255,0.03);
-  --radius: 12px;
-  --text-light: #ffffff;
-  --input-border: #1b2630;
-  --input-bg: linear-gradient(180deg,#071422,#071422);
+const switchEl = document.getElementById('themeSwitch');
+const themeText = document.getElementById('themeText');
+const themeIcon = document.getElementById('themeIcon');
+const THEME_KEY='trade_calc_theme';
+
+function applyTheme(theme){
+  if(theme==='dark'){
+    document.documentElement.setAttribute('data-theme','dark');
+    switchEl.setAttribute('data-checked','true');
+    switchEl.setAttribute('aria-checked','true');
+    themeText.textContent='Dark';
+    if (themeIcon) themeIcon.textContent='🌙';
+  } else {
+    document.documentElement.setAttribute('data-theme','');
+    switchEl.setAttribute('data-checked','false');
+    switchEl.setAttribute('aria-checked','false');
+    themeText.textContent='Light';
+    if (themeIcon) themeIcon.textContent='🌞';
+  }
 }
 
-html,body{
-  height:100%;
-  margin:0;
-  background:
-    linear-gradient(180deg, rgba(11,121,247,0.06), transparent 40%),
-    var(--bg);
-  color: var(--text-light);
-  -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale;
-  transition: background-color .18s ease, color .18s ease;
+const savedTheme = localStorage.getItem(THEME_KEY);
+applyTheme(savedTheme==='dark'?'dark':'light');
+
+function toggleTheme(){
+  const current = document.documentElement.getAttribute('data-theme')==='dark'?'dark':'light';
+  const next = current==='dark'?'light':'dark';
+  applyTheme(next);
+  localStorage.setItem(THEME_KEY,next);
 }
 
-.wrap{
-  min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:32px;
-  box-sizing:border-box;
+switchEl.addEventListener('click',toggleTheme);
+switchEl.addEventListener('keydown',(e)=>{
+  if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleTheme(); }
+});
+document.getElementById('themeToggle').addEventListener('click',(e)=>{
+  if(e.target.closest('#themeSwitch')) return; // avoid double toggle when clicking the switch
+  toggleTheme();
+});
+
+/* -----------------------
+   Language toggle (EN ↔ HI)
+   - stores original HTML for English
+   - restores English when switching back
+----------------------- */
+const langSwitch = document.getElementById('langSwitch');
+const langText = document.getElementById('langText');
+const LANG_KEY = 'trade_calc_lang';
+
+// keys mapping: logical name -> element id
+const textElements = {
+  pageTitle: 'pageTitle',
+  pageLead: 'pageLead',
+  lblPurchase: 'lblPurchase',
+  lblQty: 'lblQty',
+  lblMandiTax: 'lblMandiTax',
+  lblAgent: 'lblAgent',
+  lblLoad: 'lblLoad',
+  lblTrans: 'lblTrans',
+  lblCold: 'lblCold',
+  lblMandiAgent: 'lblMandiAgent',
+  lblMandiAgentOpt: 'lblMandiAgentOpt', // optional label
+  lblMargin: 'lblMargin',
+  noteText: 'noteText',
+  footerText: 'footerText',
+  btnCalculate: 'calcBtn',
+  btnReset: 'resetBtn',
+  lblSummaryTitle: 'lblSummaryTitle',
+  lblOtherExpenses: 'lblOtherExpenses',
+  lblPurchaseCost: 'lblPurchaseCost',
+  lblTotalExpenses: 'lblTotalExpenses',
+  lblNetProfit: 'lblNetProfit',
+  lblSellingPrice: 'lblSellingPrice',
+  lblBreakdown: 'lblBreakdown',
+  lblBdMandiTax: 'lblBdMandiTax',
+  lblBdAgent: 'lblBdAgent',
+  lblBdLoading: 'lblBdLoading',
+  lblBdTransport: 'lblBdTransport',
+  lblBdCold: 'lblBdCold',
+  lblBdMandiAgent: 'lblBdMandiAgent',
+  resultMsg: 'resultMsg',
+  themeLight: 'themeText' // optional: translate 'Light'/'Dark' label too
+};
+
+// capture originals (English) as innerHTML so we preserve markup (strong tags etc.)
+const originals = {};
+Object.values(textElements).forEach(id => {
+  const el = document.getElementById(id);
+  originals[id] = el ? el.innerHTML : '';
+});
+
+// hindi translations (HTML-safe strings where necessary)
+const translations = {
+  hi: {
+    pageTitle: "ट्रेडिंग — लाभ और खर्च कैलकुलेटर",
+    pageLead: "खरीद और खर्च दर्ज करें। वैकल्पिक रूप से मार्जिन (%) दर्ज करें ताकि विक्रय मूल्य और शुद्ध लाभ निकल सके।",
+    lblPurchase: "खरीद मूल्य (प्रति यूनिट)",
+    lblQty: "मात्रा (यूनिट / बैग / क्विंटल)",
+    lblMandiTax: "मंडी टैक्स",
+    lblAgent: "एजेंट / अरहत",
+    lblLoad: "लोडिंग / अनलोडिंग + मजदूरी",
+    lblTrans: "परिवहन",
+    lblCold: "कोल्ड स्टोरेज / किराया",
+    lblMandiAgent: "मंडी एजेंट कमीशन",
+    lblMandiAgentOpt: "शामिल करें",
+    lblMargin: "मार्जिन (%) — वैकल्पिक",
+    noteText: "संकेत: प्रतिशत मान (%) <strong>खरीद कुल = खरीद मूल्य × मात्रा</strong> पर लागू होते हैं। अपनी पसंद की इकाई (बैग, क्विंटल आदि) में मात्रा दर्ज करें।",
+    footerText: "मल्टी-पर्पज़ कैलकुलेटर — ज़रूरत पड़ने पर और खर्च जोड़ने हेतु पंक्तियाँ बदलें।",
+    btnCalculate: "गणना करें",
+    btnReset: "रीसेट",
+    lblSummaryTitle: "सारांश",
+    lblOtherExpenses: "अन्य खर्च",
+    lblPurchaseCost: "खरीद लागत",
+    lblTotalExpenses: "कुल खर्च",
+    lblNetProfit: "शुद्ध लाभ",
+    lblSellingPrice: "विक्रय मूल्य (प्रति यूनिट)",
+    lblBreakdown: "विवरण",
+    lblBdMandiTax: "मंडी टैक्स",
+    lblBdAgent: "एजेंट / अरहत",
+    lblBdLoading: "लोडिंग / मजदूरी",
+    lblBdTransport: "परिवहन",
+    lblBdCold: "कोल्ड स्टोरेज / किराया",
+    lblBdMandiAgent: "मंडी एजेंट कमीशन",
+    resultMsg: "तैयार — मान दर्ज करें और <strong>गणना करें</strong> पर क्लिक करें।",
+    themeLight: "Light"
+  }
+};
+
+// helper to set innerHTML safely if element exists
+function setHTMLById(id, html){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.innerHTML = html;
 }
 
-.card{
-  width:100%;
-  max-width:880px;
-  background:var(--card);
-  border-radius:var(--radius);
-  box-shadow: 0 10px 30px rgba(2,6,23,0.08);
-  padding:28px;
-  display:grid;
-  grid-template-columns: 1fr 360px;
-  gap:22px;
-  position:relative;
+// apply language: 'en' restores originals; 'hi' uses translations
+function applyLang(lang){
+  if(lang === 'hi'){
+    const t = translations.hi;
+    Object.entries(textElements).forEach(([key, id]) => {
+      const val = t[key];
+      if(typeof val !== 'undefined'){
+        setHTMLById(id, val);
+      } else {
+        // if translation missing, leave original (do nothing)
+      }
+    });
+    langText.textContent = 'हिंदी';
+    langSwitch.setAttribute('data-checked','true');
+    langSwitch.setAttribute('aria-checked','true');
+  } else {
+    // restore originals (English)
+    Object.values(textElements).forEach(id => {
+      setHTMLById(id, originals[id] || '');
+    });
+    langText.textContent = 'English';
+    langSwitch.setAttribute('data-checked','false');
+    langSwitch.setAttribute('aria-checked','false');
+  }
 }
 
-@media (max-width:900px){
-  .card{ grid-template-columns: 1fr; padding:20px; }
+// toggle handler
+function toggleLang(){
+  const isHi = langSwitch.getAttribute('data-checked') === 'true';
+  const next = isHi ? 'en' : 'hi';
+  applyLang(next);
+  localStorage.setItem(LANG_KEY, next);
 }
 
-h1{
-  margin:0 0 6px 0;
-  font-size:20px;
-  letter-spacing: -0.2px;
-  color: var(--text-light);
-}
-p.lead{
-  margin:0 0 18px 0;
-  color:var(--muted);
-  font-size:13px;
+// attach events
+if (langSwitch){
+  langSwitch.addEventListener('click', toggleLang);
+  langSwitch.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggleLang(); }
+  });
 }
 
-.form{
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-}
+// initialize language from storage (default en)
+const savedLang = localStorage.getItem(LANG_KEY) || 'en';
+applyLang(savedLang);
 
-.row{
-  display:flex;
-  gap:12px;
-  align-items:center;
-}
-
-.label{
-  min-width:170px;
-  font-size:13px;
-  color:var(--muted);
-}
-
-.input-wrap{
-  flex:1;
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-
-input[type="number"], input[type="text"], select.unit{
-  width:100%;
-  padding:10px 12px;
-  border-radius:10px;
-  border:1px solid var(--input-border);
-  background:var(--input-bg);
-  font-size:14px;
-  outline:none;
-  box-sizing:border-box;
-  color: var(--text-light);
-}
-input[type="number"]:focus, select.unit:focus{
-  box-shadow: 0 0 0 4px rgba(11,121,247,0.06);
-  border-color: rgba(11,121,247,0.25);
-}
-
-.note{
-  font-size:12px;
-  color:var(--muted);
-  margin-top:6px;
-}
-
-.actions{
-  display:flex;
-  gap:8px;
-  margin-top:8px;
-}
-
-button{
-  padding:10px 14px;
-  border-radius:10px;
-  border:0;
-  cursor:pointer;
-  font-weight:600;
-}
-
-.btn-primary{
-  background:linear-gradient(180deg,var(--accent),var(--accent-2));
-  color:white;
-  box-shadow: 0 6px 16px rgba(11,121,247,0.18);
-}
-.btn-ghost{
-  background:transparent;
-  border:1px solid var(--input-border);
-  color:var(--muted);
-}
-
-/* right panel */
-.summary{
-  background: linear-gradient(180deg, rgba(3,105,161,0.04), transparent);
-  border-radius:12px;
-  padding:18px;
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-  justify-content:space-between;
-}
-
-.summary h3{ margin:0; font-size:14px; color:#063a5b; }
-.summary .big{
-  font-size:20px;
-  font-weight:700;
-  margin:6px 0 0 0;
-}
-
-.line{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:8px 0;
-  border-bottom:1px dashed rgba(2,6,23,0.04);
-}
-
-.muted{ color:var(--muted); font-size:13px; }
-
-.negative{ color:var(--danger); font-weight:700; }
-.positive{ color:var(--success); font-weight:700; }
-
-ul.breakdown{ list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:6px; }
-ul.breakdown li{ display:flex; justify-content:space-between; align-items:center; font-size:13px; color:#0b1220; }
-
-footer.small{
-  margin-top:10px;
-  font-size:12px;
-  color:var(--muted);
-}
-
-.currency {
-  min-width:44px;
-  text-align:right;
-  font-weight:600;
-  color:var(--muted);
-  font-size:13px;
-}
-
-/* top controls */
-.top-controls {
-  position: absolute;
-  top: 2px;
-  right: 14px;
-  display: flex;
-  flex-direction: row;
-  gap: 10px;
-  align-items: flex-end;
-}
-
-.theme-toggle, .lang-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  user-select: none;
-}
-
-.theme-toggle .icon,
-.lang-toggle .icon {
-  font-size: 16px;
-}
-
-.switch {
-  width:46px;
-  height:26px;
-  border-radius:16px;
-  padding:3px;
-  box-sizing:border-box;
-  border:1px solid var(--input-border);
-  display:flex;
-  align-items:center;
-  cursor:pointer;
-  background: linear-gradient(180deg, rgba(2,6,23,0.04), rgba(2,6,23,0.01));
-}
-.switch .knob{
-  width:20px;
-  height:20px;
-  border-radius:50%;
-  background:var(--card);
-  transition: transform .18s ease;
-  box-shadow:0 4px 10px rgba(2,6,23,0.08);
-}
-.switch[data-checked="true"]{ background: linear-gradient(180deg,var(--accent),var(--accent-2)); border-color: rgba(11,121,247,0.24); }
-.switch[data-checked="true"] .knob{ transform: translateX(20px); background: white; }
-
-/* optional checkbox styling */
-.optional-wrap {
-  display:flex;
-  align-items:center;
-  gap:6px;
-  margin-right:6px;
-  user-select:none;
-  font-size:13px;
-  color:var(--muted);
-}
-.optional-wrap input[type="checkbox"]{
-  width:16px;
-  height:16px;
-  cursor:pointer;
-}
-.optional-label { font-size:13px; color:var(--muted); }
-
-/* ensure selects look like other inputs */
-select.unit {
-  min-width:88px;
-  max-width:140px;
-}
-
-/* layout helpers */
-.flex-row {
-  display:flex;
-  gap:8px;
-  width:100%;
-}
-.flex-row > * { flex:1; }
-.input-small{ max-width:140px; }
-
-@media (max-width:720px){
-  .label{ min-width: 120px; font-size:12px; }
-  .card{ padding:18px; gap:12px; }
-  .optional-wrap .optional-label { display:none; } /* save space on small screens */
-}
+// ensure theme label text matches theme on load
+(function syncThemeLabel(){
+  const savedThemeLocal = localStorage.getItem(THEME_KEY);
+  applyTheme(savedThemeLocal === 'dark' ? 'dark' : 'light');
+})();
