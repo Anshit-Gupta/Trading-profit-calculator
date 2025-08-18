@@ -10,22 +10,35 @@
   <div class="wrap">
     <div class="card" role="application" aria-label="Trading calculator" id="cardRoot">
 
-      <!-- theme toggle -->
-      <div class="theme-toggle" id="themeToggle">
-        <div class="theme-label muted" id="themeText" style="font-size:12px;">Light</div>
-        <div class="switch" id="themeSwitch" role="switch" tabindex="0" aria-checked="false" data-checked="false" aria-label="Toggle dark theme">
-          <div class="knob" aria-hidden="true"></div>
+      <!-- top controls -->
+      <div class="top-controls">
+        <!-- theme toggle -->
+        <div class="theme-toggle" id="themeToggle">
+          <span class="icon" id="themeIcon">🌞</span>
+          <div class="switch" id="themeSwitch" role="switch" tabindex="0" aria-checked="false" data-checked="false" aria-label="Toggle dark theme">
+            <div class="knob" aria-hidden="true"></div>
+          </div>
+          <div class="theme-label muted" id="themeText" style="font-size:12px;">Light</div>
+        </div>
+
+        <!-- language toggle -->
+        <div class="lang-toggle" id="langToggle">
+          <span class="icon">🌐</span>
+          <div class="switch" id="langSwitch" role="switch" tabindex="0" aria-checked="false" data-checked="false" aria-label="Toggle Hindi">
+            <div class="knob" aria-hidden="true"></div>
+          </div>
+          <div class="lang-label muted" id="langText" style="font-size:12px;">English</div>
         </div>
       </div>
 
       <div>
-        <h1>Trading — Profit &amp; Expense Calculator</h1>
-        <p class="lead">Enter purchase and expense amounts below. Optionally enter a margin (%) to compute selling price & net profit.</p>
+        <h1 id="pageTitle">Trading — Profit &amp; Expense Calculator</h1>
+        <p class="lead" id="pageLead">Enter purchase and expense amounts below. Optionally enter a margin (%) to compute selling price & net profit.</p>
 
         <form class="form" id="calcForm" onsubmit="return false;" autocomplete="off">
 
           <div class="row">
-            <div class="label">Purchase Price (per unit)</div>
+            <div class="label" id="lblPurchase">Purchase Price (per unit)</div>
             <div class="input-wrap">
               <div class="currency">₹</div>
               <input id="purchasePrice" type="number" step="0.01" min="0" placeholder="0.00" value="0">
@@ -33,15 +46,15 @@
           </div>
 
           <div class="row">
-            <div class="label">Quantity (units / bags / quintals)</div>
+            <div class="label" id="lblQty">Quantity (units / bags / quintals)</div>
             <div class="input-wrap">
               <input id="quantity" type="number" step="0.01" min="0" placeholder="1" value="1">
             </div>
           </div>
 
           <div class="row">
-            <div class="label">Mandi Tax</div>
-            <div class="input-wrap flex-row">
+            <div class="label" id="lblMandiTax">Mandi Tax</div>
+            <div class="input-wrap">
               <input id="mandiTax" type="number" step="0.01" min="0" placeholder="0.00" value="0">
               <select id="mandiTaxUnit" class="unit">
                 <option value="INR">₹</option>
@@ -51,8 +64,8 @@
           </div>
 
           <div class="row">
-            <div class="label">Agent / Arhat</div>
-            <div class="input-wrap flex-row">
+            <div class="label" id="lblAgent">Agent / Arhat</div>
+            <div class="input-wrap">
               <input id="agentArhat" type="number" step="0.01" min="0" placeholder="0.00" value="0">
               <select id="agentArhatUnit" class="unit">
                 <option value="INR">₹</option>
@@ -62,7 +75,7 @@
           </div>
 
           <div class="row">
-            <div class="label">Loading / Unloading + labour</div>
+            <div class="label" id="lblLoad">Loading / Unloading + labour</div>
             <div class="input-wrap">
               <div class="currency">₹</div>
               <input id="loading" type="number" step="0.01" min="0" placeholder="0.00" value="0">
@@ -70,7 +83,7 @@
           </div>
 
           <div class="row">
-            <div class="label">Transportation</div>
+            <div class="label" id="lblTrans">Transportation</div>
             <div class="input-wrap">
               <div class="currency">₹</div>
               <input id="transportation" type="number" step="0.01" min="0" placeholder="0.00" value="0">
@@ -78,16 +91,22 @@
           </div>
 
           <div class="row">
-            <div class="label">Cold storage / Rent</div>
+            <div class="label" id="lblCold">Cold storage / Rent</div>
             <div class="input-wrap">
               <div class="currency">₹</div>
               <input id="coldStorage" type="number" step="0.01" min="0" placeholder="0.00" value="0">
             </div>
           </div>
 
+          <!-- Mandi Agent Commission row (optional) -->
           <div class="row">
-            <div class="label">Mandi Agent Commission</div>
-            <div class="input-wrap flex-row">
+            <div class="label" id="lblMandiAgent">Mandi Agent Commission</div>
+            <div class="input-wrap">
+              <label class="optional-wrap" title="Toggle Mandi Agent Commission">
+                <input type="checkbox" id="mandiAgentToggle" checked>
+                <span id="lblMandiAgentOpt" class="optional-label">Include</span>
+              </label>
+
               <input id="mandiAgentCommission" type="number" step="0.01" min="0" placeholder="0.00" value="0">
               <select id="mandiAgentCommissionUnit" class="unit">
                 <option value="INR">₹</option>
@@ -97,13 +116,13 @@
           </div>
 
           <div class="row">
-            <div class="label">Margin (%) — optional</div>
+            <div class="label" id="lblMargin">Margin (%) — optional</div>
             <div class="input-wrap">
               <input id="margin" type="number" step="0.01" min="0" placeholder="Enter margin %">
             </div>
           </div>
 
-          <div class="note">Tip: percent values (%) are applied to <strong>Purchase Total = Purchase Price × Quantity</strong>. Enter quantity in your chosen unit (bag, quintal, etc.).</div>
+          <div class="note" id="noteText">Tip: percent values (%) are applied to <strong>Purchase Total = Purchase Price × Quantity</strong>. Enter quantity in your chosen unit (bag, quintal, etc.).</div>
 
           <div class="actions">
             <button class="btn-primary" id="calcBtn" type="button">Calculate</button>
@@ -111,48 +130,49 @@
           </div>
         </form>
 
-        <footer class="small">Multi-purpose calculator — change labels or add rows if you want more expense types.</footer>
+        <footer class="small" id="footerText">Multi-purpose calculator — change labels or add rows if you want more expense types.</footer>
       </div>
 
+      <!-- summary -->
       <div class="summary" aria-live="polite">
         <div>
-          <h3>Summary</h3>
+          <h3 id="lblSummaryTitle">Summary</h3>
 
           <div class="line">
-            <div class="muted">Other Expenses</div>
+            <div class="muted" id="lblOtherExpenses">Other Expenses</div>
             <div id="totalExpenses" class="big">₹0.00</div>
           </div>
 
           <div class="line">
-            <div class="muted">Purchase Cost</div>
+            <div class="muted" id="lblPurchaseCost">Purchase Cost</div>
             <div id="purchaseTotal" class="muted">₹0.00</div>
           </div>
 
           <div class="line" style="border-bottom:1px solid rgba(2,6,23,0.06);">
-            <div class="muted">Total expenses</div>
+            <div class="muted" id="lblTotalExpenses">Total expenses</div>
             <div id="netAfter" class="big">₹0.00</div>
           </div>
 
           <div id="profitBlock" style="display:none;">
             <div class="line" style="border-bottom:1px dashed rgba(2,6,23,0.04);">
-              <div class="muted">Net Profit</div>
+              <div class="muted" id="lblNetProfit">Net Profit</div>
               <div id="profit" class="big">₹0.00</div>
             </div>
             <div class="line">
-              <div class="muted">Selling Price (per unit)</div>
+              <div class="muted" id="lblSellingPrice">Selling Price (per unit)</div>
               <div id="sellingTotal" class="muted">₹0.00</div>
             </div>
           </div>
 
           <div style="margin-top:12px;">
-            <div class="muted" style="font-size:13px; margin-bottom:8px;">Breakdown</div>
+            <div class="muted" style="font-size:13px; margin-bottom:8px;" id="lblBreakdown">Breakdown</div>
             <ul class="breakdown">
-              <li><span class="muted">Mandi Tax</span><span id="bdMandiTax">₹0.00</span></li>
-              <li><span class="muted">Agent / Arhat</span><span id="bdAgent">₹0.00</span></li>
-              <li><span class="muted">Loading / Labour</span><span id="bdLoading">₹0.00</span></li>
-              <li><span class="muted">Transportation</span><span id="bdTransport">₹0.00</span></li>
-              <li><span class="muted">Cold storage / Rent</span><span id="bdCold">₹0.00</span></li>
-              <li><span class="muted">Mandi Agent Commission</span><span id="bdMandiAgent">₹0.00</span></li>
+              <li><span class="muted" id="lblBdMandiTax">Mandi Tax</span><span id="bdMandiTax">₹0.00</span></li>
+              <li><span class="muted" id="lblBdAgent">Agent / Arhat</span><span id="bdAgent">₹0.00</span></li>
+              <li><span class="muted" id="lblBdLoading">Loading / Labour</span><span id="bdLoading">₹0.00</span></li>
+              <li><span class="muted" id="lblBdTransport">Transportation</span><span id="bdTransport">₹0.00</span></li>
+              <li><span class="muted" id="lblBdCold">Cold storage / Rent</span><span id="bdCold">₹0.00</span></li>
+              <li id="liBdMandiAgent"><span class="muted" id="lblBdMandiAgent">Mandi Agent Commission</span><span id="bdMandiAgent">₹0.00</span></li>
             </ul>
           </div>
 
@@ -164,7 +184,6 @@
 
     </div>
   </div>
-
   <script src="script.js"></script>
 </body>
 </html>
