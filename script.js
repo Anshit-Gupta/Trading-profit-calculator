@@ -2,7 +2,7 @@
 function toNum(v){
   if (v === null || v === undefined) return 0;
   v = v.toString().trim();
-  if (v === '') return NaN;
+  if (v === '') return 0;
   const n = parseFloat(v.replace(/,/g,''));
   return isNaN(n) ? 0 : n;
 }
